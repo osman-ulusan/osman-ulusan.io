@@ -7,7 +7,7 @@ import NumberFilter from '@inovua/reactdatagrid-community/NumberFilter';
 import StringFilter from '@inovua/reactdatagrid-community/StringFilter';
 import DateFilter from '@inovua/reactdatagrid-community/DateFilter';
 import moment from 'moment';
-import data from './data';
+import data from './fullData';
 import todayData from './todayData';
 import { themeChange } from 'theme-change';
 
