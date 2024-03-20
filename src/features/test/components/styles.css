@@ -1,0 +1,28 @@
+.rag-red {
+    background-color: #cc222244;
+}
+
+.rag-green {
+    background-color: #33cc3344;
+}
+
+.cell-span {
+    background-color: #2244cc44;
+}
+
+.ms1-header {
+    text-align: center;
+    justify-content: center;
+}
+
+.ag-header-group-cell-with-group {
+    justify-content: center;
+}
+.ag-header-cell-label{
+    text-align: center;
+    justify-content: center;
+}
+/*.ag-cell{
+    text-align: center;
+    justify-content: center;
+}*/
