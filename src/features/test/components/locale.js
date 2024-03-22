@@ -44,7 +44,7 @@ export const AG_GRID_LOCALE_EN = {
     // Filter Buttons
     applyFilter: 'Apply',
     resetFilter: 'Reset',
-    clearFilter: 'Clear',
+    clearFilter: 'Temizle',
     cancelFilter: 'Cancel',
 
     // Filter Titles
@@ -133,7 +133,7 @@ export const AG_GRID_LOCALE_EN = {
     // Other
     loadingOoo: 'Loading...',
     loadingError: 'ERR',
-    noRowsToShow: 'No Rows To Show',
+    noRowsToShow: 'Eşleşen Veri Yok',
     enabled: 'Enabled',
 
     // Menu

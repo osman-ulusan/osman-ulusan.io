@@ -5,6 +5,7 @@ import React, { StrictMode, useEffect, useMemo, useState, useCallback, useRef } 
 import { createRoot } from 'react-dom/client';
 import './styles.css';
 import data from './fullData';
+import todayData from './todayData';
 import { AG_GRID_LOCALE_ZZZ } from "./locale.js";
 
 const ragCellClassRules = {
@@ -18,6 +19,10 @@ const Table = () => {
   const gridRef = useRef();
   const containerStyle = useMemo(() => ({ width: '100%', height: '550px' }), []);
   const gridStyle = useMemo(() => ({ height: '100%', width: '100%' }), []);
+  
+  const [rowData, setRowData] = useState();
+  const [dataToday, setDataToday] = useState([]); // useNewData -> dataToday
+  const [dataFull, setDataFull] = useState([]); // newData -> dataFull
 
   const [currentTheme, setCurrentTheme] = useState(localStorage.getItem("theme"));
 
@@ -65,7 +70,7 @@ const Table = () => {
       </div>
     );
   };
-  const [rowData, setRowData] = useState();
+
 
   const bet365Data = (data) => {
     const bet365DataArray = [];
@@ -202,7 +207,7 @@ const Table = () => {
       filter: 'agDateColumnFilter',
       filterParams: filterParams,
       headerName: 'Tarih',
-      minWidth:180,
+      minWidth: 180,
       valueFormatter: function (params) {
         var date = new Date(params.value);
         var day = date.getDate().toString().padStart(2, '0');
@@ -213,7 +218,10 @@ const Table = () => {
         return `${day}.${month}.${year} ${hours}:${minutes}`;
       }
     },
-    { field: 'CountryName', headerName: 'Ülke', },
+    {
+      field: 'CountryName',
+      headerName: 'Ülke'
+    },
     { field: 'TournamentName', headerName: 'Lig', filter: true },
     { field: 'HomeName', headerName: 'Ev Sahibi', filter: true },
     { field: 'AwayName', headerName: 'Deplasman', filter: true },
@@ -365,7 +373,10 @@ const Table = () => {
       flex: 1,
       minWidth: 150,
       filter: true,
-      floatingFilter: true
+      floatingFilter: true,
+      filterParams: {
+        buttons: ["clear"],
+      },
     };
   }, []);
   const rowClassRules = useMemo(() => {
@@ -379,8 +390,12 @@ const Table = () => {
   }, []);
 
   useEffect(() => {
-    const bet365DataToday = bet365Data(data);
+    const bet365DataToday = bet365Data(todayData);
     setRowData(bet365DataToday);
+    
+    const bet365DataFull = bet365Data(data);
+    setDataToday(bet365DataToday); // setUseNewData -> setDataToday
+    setDataFull(bet365DataFull); // setNewData -> setDataFull
 
     const themeChangedHandler = () => {
       const newTheme = localStorage.getItem("theme");
@@ -409,6 +424,45 @@ const Table = () => {
     }
   };
 
+  const clearFilters = useCallback(() => {
+    gridRef.current.api.setFilterModel(null);
+  });
+
+  const clearFilter = useCallback((field) => {
+    gridRef.current.api.getFilterInstance(field).resetFilter();
+    gridRef.current.api.onFilterChanged();
+  }, []);
+
+  // set background colour on even rows again, this looks bad, should be using CSS classes
+  const getRowStyle = params => {
+    if (params.node.rowIndex % 2 === 0) {
+      return { background: '#f2f2f2' };
+    }
+  };
+
+  const onFilterChanged = useCallback(() => {
+    if (gridRef.current) {
+      const filterModel = gridRef.current.api.getFilterModel(); // Filtre modelini al
+  
+      // Eğer filtre varsa, filtrelenmiş verileri elde et
+      if (Object.keys(filterModel).length > 0) {
+        // Filtrelenmiş verileri yeni bir diziye atayarak güncelle
+        const newFilteredData = dataFull.filter(row => {
+          // Her bir filtre için veriyi filtrele
+          return Object.keys(filterModel).every(field => {
+            const filterValue = filterModel[field].filter.toString().replace(/,/g, '.');; // Filtre değerini al
+            // Veri üzerinde filtreleme yap
+            return row[field].toString().toLowerCase().includes(filterValue.toString().toLowerCase());
+          });
+        });
+        setRowData(newFilteredData); // Filtrelenmiş verileri güncelle
+      } else {
+        // Eğer filtre yoksa, tüm verileri göster
+        setRowData(dataToday);
+      }
+    }
+  }, [gridRef.current, dataFull, dataToday]);
+
   return (
     <div style={containerStyle}>
       <div
@@ -417,7 +471,10 @@ const Table = () => {
           currentTheme === "dark" ? "ag-theme-quartz-dark" : "ag-theme-quartz"
         }
       >
+        <button onClick={clearFilters}>Filtreleri Temizle</button>
         <AgGridReact
+          ref={gridRef}
+          getRowStyle={currentTheme === "light" ? getRowStyle: null}
           rowData={rowData}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
@@ -428,6 +485,7 @@ const Table = () => {
           paginationPageSizeSelector={paginationPageSizeSelector}
           onCellDoubleClicked={onCellClicked}
           localeText={AG_GRID_LOCALE_ZZZ}
+          onFilterChanged={onFilterChanged}
         />
       </div>
     </div>
