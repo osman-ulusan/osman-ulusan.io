@@ -19,10 +19,12 @@ const Table = () => {
   const gridRef = useRef();
   const containerStyle = useMemo(() => ({ width: '100%', height: '550px' }), []);
   const gridStyle = useMemo(() => ({ height: '100%', width: '100%' }), []);
-  
+
   const [rowData, setRowData] = useState();
   const [dataToday, setDataToday] = useState([]); // useNewData -> dataToday
   const [dataFull, setDataFull] = useState([]); // newData -> dataFull
+  const [selectedRow, setSelectedRow] = useState([]);
+  const [topRow, setTopRow] = useState(null);
 
   const [currentTheme, setCurrentTheme] = useState(localStorage.getItem("theme"));
 
@@ -392,7 +394,7 @@ const Table = () => {
   useEffect(() => {
     const bet365DataToday = bet365Data(todayData);
     setRowData(bet365DataToday);
-    
+
     const bet365DataFull = bet365Data(data);
     setDataToday(bet365DataToday); // setUseNewData -> setDataToday
     setDataFull(bet365DataFull); // setNewData -> setDataFull
@@ -412,7 +414,12 @@ const Table = () => {
   }, []);
 
   const onCellClicked = (params) => {
-    const { value, column, api } = params;
+    console.log("onCellClicked");
+    const { data, value, column, api } = params;
+    console.log("sec " + JSON.stringify(data));
+    setSelectedRow(data);
+    setTopRow(data); // Tıklanan satırı en üstteki satır olarak ayarla
+
     if (column.colDef.filter) {
       api.setColumnFilterModel(column.colDef.field, {
         type: 'equals',
@@ -424,26 +431,11 @@ const Table = () => {
     }
   };
 
-  const clearFilters = useCallback(() => {
-    gridRef.current.api.setFilterModel(null);
-  });
-
-  const clearFilter = useCallback((field) => {
-    gridRef.current.api.getFilterInstance(field).resetFilter();
-    gridRef.current.api.onFilterChanged();
-  }, []);
-
-  // set background colour on even rows again, this looks bad, should be using CSS classes
-  const getRowStyle = params => {
-    if (params.node.rowIndex % 2 === 0) {
-      return { background: '#f2f2f2' };
-    }
-  };
-
   const onFilterChanged = useCallback(() => {
+    console.log("onFilterChanged");
     if (gridRef.current) {
       const filterModel = gridRef.current.api.getFilterModel(); // Filtre modelini al
-  
+
       // Eğer filtre varsa, filtrelenmiş verileri elde et
       if (Object.keys(filterModel).length > 0) {
         // Filtrelenmiş verileri yeni bir diziye atayarak güncelle
@@ -455,13 +447,44 @@ const Table = () => {
             return row[field].toString().toLowerCase().includes(filterValue.toString().toLowerCase());
           });
         });
+        
+        // Tıklanan satırı her zaman en üste ekle, ancak eğer zaten filtrelenmiş veride varsa eklemeyin
+        if (selectedRow && !newFilteredData.includes(selectedRow)) {
+          newFilteredData.unshift(selectedRow);
+        }
         setRowData(newFilteredData); // Filtrelenmiş verileri güncelle
       } else {
         // Eğer filtre yoksa, tüm verileri göster
         setRowData(dataToday);
       }
     }
-  }, [gridRef.current, dataFull, dataToday]);
+  }, [gridRef.current, dataFull, dataToday, selectedRow]);
+
+  const clearFilters = useCallback(() => {
+    gridRef.current.api.setFilterModel(null);
+    setTopRow(null);
+  });
+
+  const clearFilter = useCallback((field) => {
+    gridRef.current.api.getFilterInstance(field).resetFilter();
+    gridRef.current.api.onFilterChanged();
+  }, []);
+
+  // set background colour on even rows again, this looks bad, should be using CSS classes
+  const getRowStyle = params => {
+    if (params.node.data === topRow) {
+      return { background: '#ffcc00', fontWeight: 'bold' }; // En üstteki satırı vurgulamak için stil ekle
+    } else if (params.node.rowIndex % 2 === 0) {
+      return { background: '#f2f2f2' };
+    }
+  };
+
+  const getRowStyleDark = params => {
+    if (params.node.data === topRow) {
+      return { background: '#ffcc00', fontWeight: 'bold', color: '#000' }; // En üstteki satırı vurgulamak için stil ekle
+    }
+  };
+
 
   return (
     <div style={containerStyle}>
@@ -474,7 +497,7 @@ const Table = () => {
         <button onClick={clearFilters}>Filtreleri Temizle</button>
         <AgGridReact
           ref={gridRef}
-          getRowStyle={currentTheme === "light" ? getRowStyle: null}
+          getRowStyle={currentTheme === "light" ? getRowStyle : getRowStyleDark}
           rowData={rowData}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
